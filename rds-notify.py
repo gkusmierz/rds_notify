@@ -8,12 +8,11 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 class RdsHandler(FileSystemEventHandler):
-
-    def __init__(self, file_path):
+    def __init__(self, file_path, host="127.0.0.1", port=1234):
         FileSystemEventHandler.__init__(self)
-        self.file_path = file_path        
-        self._host = "127.0.0.1"
-        self._port = 1234        
+        self.file_path = file_path
+        self._host = host
+        self._port = port
         self._regex = re.compile(r"^(?P<artist>.*) - (?P<title>.*)$")
         self._last_sent = time.time()
 
@@ -21,7 +20,7 @@ class RdsHandler(FileSystemEventHandler):
         if event.src_path == self.file_path:
             with open(event.src_path, 'r') as f:
                 content = f.read()
-                self.parse_content_then_send(content)                
+                self.parse_content_then_send(content)
                 f.close()
             self._last_sent = time.time()
 
@@ -35,7 +34,7 @@ class RdsHandler(FileSystemEventHandler):
         _sock.connect((self._host, self._port))
         _sock.send(message.encode())
         _sock.close()
-        logging.info("MESSAGE SENT: {}".format(message))        
+        logging.info("MESSAGE SENT: {}".format(message.replace('\r\n', '')))
 
     def _get_groups(self, input) -> dict:
         try:
@@ -52,7 +51,7 @@ class RdsHandler(FileSystemEventHandler):
                 title = unidecode.unidecode(groups['title'])
                 message = "TEXT=Teraz gramy: {0} - {1}\r\n".format(artist, title)
             else:
-                message = "TEXT=Pomaranczowy telefon Super FM: 91 44 555 50\r\n"          
+                message = "TEXT=Pomaranczowy telefon Super FM: 91 44 555 50\r\n"
             self.send_message(message)
         except Exception as e:
             logging.error(e)
@@ -65,7 +64,7 @@ if __name__ == "__main__":
     observer = Observer()    
     observer.schedule(rds_handler, path=rds_handler.get_path(), recursive=False)
     observer.start()
-    logging.info("Happy sending from '{}'".format(rds_handler.file_path))
+    logging.info("HAPPY SENDING FROM: '{}'".format(rds_handler.file_path))
     try:
         while True:
             time.sleep(1)
